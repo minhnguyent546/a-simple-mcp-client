@@ -1,0 +1,93 @@
+services:
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:0.9.0
+    restart: always
+    healthcheck:
+      test: [ "CMD", "ollama", "list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - a_simple_mcp_client
+
+  ollama-init:
+    image: ollama/ollama:0.9.0
+    container_name: ollama-init
+    env_file:
+      - .env
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - a_simple_mcp_client
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      "
+        echo 'Waiting for Ollama to be ready...' &&
+        sleep 10 &&
+        ollama pull ${MODEL_NAME} &&
+        echo 'Model pulled successfully'
+      "
+    environment:
+      - OLLAMA_HOST=ollama:11434
+
+  api:
+    build:
+      context: api
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - MCP_SERVER_FILE_PATH=${MCP_SERVER_FILE_PATH}
+      - MODEL_NAME=${MODEL_NAME}
+      - OLLAMA_BASE_URL=http://ollama:11434
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8123/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "8123:8123"
+    networks:
+      - a_simple_mcp_client
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+
+  ui:
+    build:
+      context: ui
+      dockerfile: Dockerfile
+    restart: always
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/healthz')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      - API_URL=http://api:8123
+    ports:
+      - "8501:8501"
+    networks:
+      - a_simple_mcp_client
+    depends_on:
+      - api
+
+networks:
+  a_simple_mcp_client:
+
+
+volumes:
+  ollama_data:
