@@ -52,7 +52,7 @@ class Chatbot:
             # Parse think content from main content
             think_content, main_content = self._parse_think_content(content)
 
-            with st.chat_message('assistant', avatar='./assets/assistant.jpg'):
+            with st.chat_message('assistant', avatar='app/assets/assistant.jpg'):
                 # Display thinking process if present
                 if think_content:
                     with st.expander("🤔 Thinking process", expanded=False):
