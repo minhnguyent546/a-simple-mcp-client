@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1
 
 # install uv
 # see: https://docs.astral.sh/uv/guides/integration/docker/
-COPY --from=ghcr.io/astral-sh/uv:0.7.10 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
